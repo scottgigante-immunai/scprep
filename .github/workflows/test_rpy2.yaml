@@ -13,15 +13,42 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {name: '3.9', os: ubuntu-latest, python: '3.9', r: 'devel' }
-        - {name: '3.8', os: ubuntu-latest, python: '3.8', r: 'release' }
-        - {name: '3.7', os: ubuntu-latest, python: '3.7', r: 'release' }
-        - {name: '3.6', os: ubuntu-latest, python: '3.6', r: 'oldrel' }
+        - {name: 'devel_v3_with_ld', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v3', set_ld_library_path: true}
+        - {name: 'devel_v3', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v3', set_ld_library_path: false}
+        - {name: 'release_v3_with_ld', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v3', set_ld_library_path: true}
+        - {name: 'release_v3', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v3', set_ld_library_path: false}
+        - {name: 'oldrel_v3_with_ld', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v3', set_ld_library_path: true}
+        - {name: 'oldrel_v3', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v3', set_ld_library_path: false}
+        - {name: 'devel_v1_with_ld', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v1', set_ld_library_path: true}
+        - {name: 'devel_v2_with_ld', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v2', set_ld_library_path: true}
+        - {name: 'devel_v1', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v1', set_ld_library_path: false}
+        - {name: 'devel_v2', r: 'devel', os: ubuntu-latest, python: '3.9', setup_python: 'v2', set_ld_library_path: false}
+        - {name: 'release_v1_with_ld', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v1', set_ld_library_path: true}
+        - {name: 'release_v2_with_ld', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v2', set_ld_library_path: true}
+        - {name: 'release_v1', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v1', set_ld_library_path: false}
+        - {name: 'release_v2', r: 'release', os: ubuntu-latest, python: '3.8', setup_python: 'v2', set_ld_library_path: false}
+        - {name: 'oldrel_v1_with_ld', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v1', set_ld_library_path: true}
+        - {name: 'oldrel_v2_with_ld', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v2', set_ld_library_path: true}
+        - {name: 'oldrel_v1', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v1', set_ld_library_path: false}
+        - {name: 'oldrel_v2', r: 'oldrel', os: ubuntu-latest, python: '3.7',  setup_python: 'v2', set_ld_library_path: false}
 
     steps:
 
-    - name: Set up Python
+    - name: Set up Python V1
+      if: ${{ matrix.config.setup_python == 'v1' }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.config.python }}
+
+    - name: Set up Python V2
+      if: ${{ matrix.config.setup_python == 'v2' }}
       uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.config.python }}
+
+    - name: Set up Python V2
+      if: ${{ matrix.config.setup_python == 'v3' }}
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.config.python }}
 
@@ -31,10 +58,16 @@ jobs:
       with:
         r-version: ${{ matrix.config.r }}
 
-    - name: Test rpy2
+    - name: Install rpy2
       run: |
-        pip install wheel
-        pip install rpy2
+        python -m pip install -U pip wheel
+        python -m pip install rpy2
+    - name: Set LD_LIBRARY_PATH
+      if: ${{ matrix.config.set_ld_library_path }}
+      run: echo "LD_LIBRARY_PATH=$(python -m rpy2.situation LD_LIBRARY_PATH):${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+
+    - name: Import rpy2
+      run: |
         python -c "import rpy2.robjects"
     - name: Print system config
       if: always()
@@ -43,4 +76,4 @@ jobs:
         uname -a
         python --version
         R --version
-        pip freeze
+        python -m pip freeze
